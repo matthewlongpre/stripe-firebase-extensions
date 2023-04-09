@@ -24,4 +24,5 @@ export default {
   autoDeleteUsers: process.env.DELETE_STRIPE_CUSTOMERS === 'Auto delete',
   minCheckoutInstances:
     Number(process.env.CREATE_CHECKOUT_SESSION_MIN_INSTANCES) ?? 0,
+  mixpanelProjectId: process.env.MIXPANEL_PROJECT_ID,
 };

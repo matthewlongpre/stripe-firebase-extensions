@@ -258,6 +258,12 @@ params:
     default: 0
     required: true
 
+  - param: MIXPANEL_PROJECT_ID
+    label: Mixpanel Project Token
+    description: Your Mixpanel project token.
+    type: string
+    required: true
+
 events:
   - type: com.stripe.v1.product.created
     description: Occurs whenever a product is created.

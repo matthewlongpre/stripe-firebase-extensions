@@ -18,15 +18,15 @@ import * as admin from 'firebase-admin';
 import { getEventarc } from 'firebase-admin/eventarc';
 import * as functions from 'firebase-functions';
 import Stripe from 'stripe';
+import config from './config';
 import {
-  Product,
-  Price,
-  Subscription,
   CustomerData,
+  Price,
+  Product,
+  Subscription,
   TaxRate,
 } from './interfaces';
 import * as logs from './logs';
-import config from './config';
 
 const apiVersion = '2020-08-27';
 const stripe = new Stripe(config.stripeSecretKey, {
@@ -564,6 +564,9 @@ const manageSubscriptionStatusChange = async (
         await admin
           .auth()
           .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
+
+        // Custom logic
+        logs.userCustomClaimSet(uid, 'CUSTOM TEST', role);
       } else {
         logs.userCustomClaimSet(uid, 'stripeRole', 'null');
         await admin

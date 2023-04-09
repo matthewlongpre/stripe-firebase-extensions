@@ -17,11 +17,10 @@
 import * as admin from 'firebase-admin';
 import { getEventarc } from 'firebase-admin/eventarc';
 import * as functions from 'firebase-functions';
-import startCase from 'lodash.startcase';
-import mixpanel from 'mixpanel';
+
 import Stripe from 'stripe';
 import config from './config';
-import { parseStripeRole } from './custom/parseStripeRole';
+import { syncMixpanelPeopleProperties } from './custom/syncMixpanelPeopleProperties';
 import {
   CustomerData,
   Price,
@@ -556,18 +555,8 @@ const manageSubscriptionStatusChange = async (
 
   logs.firestoreDocCreated('subscriptions', subscription.id);
 
-  const { planType, maxPlayers } = await parseStripeRole(
-    uid,
-    role,
-    subscriptionData
-  );
-
-  const MixpanelService = mixpanel.init(config.mixpanelProjectId);
-
-  MixpanelService.people.set(uid, {
-    'Plan Type': startCase(planType),
-    'Max Players': maxPlayers,
-  });
+  // Custom: Sync user to Mixpanel
+  syncMixpanelPeopleProperties(uid, role, subscriptionData);
 
   // Update their custom claims
   if (role) {
@@ -580,9 +569,6 @@ const manageSubscriptionStatusChange = async (
         await admin
           .auth()
           .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
-
-        // Custom logic
-        logs.userCustomClaimSet(uid, 'CUSTOM TEST', role);
       } else {
         logs.userCustomClaimSet(uid, 'stripeRole', 'null');
         await admin

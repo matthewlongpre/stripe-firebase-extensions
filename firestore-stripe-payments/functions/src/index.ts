@@ -572,7 +572,7 @@ const manageSubscriptionStatusChange = async (
           .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
       } else {
         // Custom: Check for other valid subscriptions before removing claims
-        if (!hasValidSubscription(stripe, customerId)) {
+        if (!hasValidSubscription(stripe, customerId, subscription.id)) {
           logs.userCustomClaimSet(uid, 'stripeRole', 'null');
           await admin
             .auth()

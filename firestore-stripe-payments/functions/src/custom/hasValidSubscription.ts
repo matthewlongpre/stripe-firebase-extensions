@@ -1,14 +1,22 @@
 import { logger } from 'firebase-functions';
+import Stripe from 'stripe';
 
-export async function hasValidSubscription(stripe, customerId) {
+export async function hasValidSubscription(
+  stripe: Stripe,
+  customerId: string,
+  subscriptionId: string
+) {
   try {
-    // Retrieve all subscriptions for the customer
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
     });
 
+    const otherSubscriptions = subscriptions.data.filter(
+      (subcollection) => subcollection.id !== subscriptionId
+    );
+
     // Check if the customer has any other `active` or `trialing` subscriptions
-    const hasActiveSubscription = subscriptions.data.some(({ status }) =>
+    const hasActiveSubscription = otherSubscriptions.some(({ status }) =>
       ['active', 'trialing'].includes(status)
     );
 
@@ -19,5 +27,6 @@ export async function hasValidSubscription(stripe, customerId) {
     logger.error(
       `Error checking for additional active subscriptions for '${customerId}'`
     );
+    return false;
   }
 }

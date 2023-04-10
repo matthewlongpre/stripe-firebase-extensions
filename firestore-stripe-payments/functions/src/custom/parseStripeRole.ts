@@ -40,10 +40,6 @@ async function parseStripeRoleAsString(
   subscriptionDoc
 ): Promise<ParsedStripeRole> {
   if (role === PlanType.PRO) {
-    // const maxPlayersFromSubscription = await getMaxPlayersFromSubscription(
-    //   userId
-    // );
-
     const maxPlayersFromSubscription = parseSubscriptionData(subscriptionDoc);
 
     return {

@@ -12,15 +12,19 @@ export async function hasValidSubscription(
     });
 
     const otherSubscriptions = subscriptions.data.filter(
-      (subcollection) => subcollection.id !== subscriptionId
+      (subscription) => subscription.id !== subscriptionId
     );
+
+    if (!otherSubscriptions.length) return false;
 
     // Check if the customer has any other `active` or `trialing` subscriptions
     const hasActiveSubscription = otherSubscriptions.some(({ status }) =>
       ['active', 'trialing'].includes(status)
     );
 
-    logger.log(`User has another valid subscription`);
+    if (hasActiveSubscription) {
+      logger.log(`User has another valid subscription`);
+    }
 
     return hasActiveSubscription;
   } catch (error) {

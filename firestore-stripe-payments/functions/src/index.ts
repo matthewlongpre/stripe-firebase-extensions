@@ -556,9 +556,6 @@ const manageSubscriptionStatusChange = async (
 
   logs.firestoreDocCreated('subscriptions', subscription.id);
 
-  // Custom: Sync user to Mixpanel
-  syncMixpanelPeopleProperties(uid, role, subscriptionData);
-
   // Update their custom claims
   if (role) {
     try {
@@ -570,13 +567,25 @@ const manageSubscriptionStatusChange = async (
         await admin
           .auth()
           .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
+
+        // Custom: Sync user to Mixpanel
+        syncMixpanelPeopleProperties(uid, role, subscriptionData);
       } else {
         // Custom: Check for other valid subscriptions before removing claims
-        if (!hasValidSubscription(stripe, customerId, subscription.id)) {
+        const shouldRemoveClaims = !(await hasValidSubscription(
+          stripe,
+          customerId,
+          subscription.id
+        ));
+
+        if (shouldRemoveClaims) {
           logs.userCustomClaimSet(uid, 'stripeRole', 'null');
           await admin
             .auth()
             .setCustomUserClaims(uid, { ...customClaims, stripeRole: null });
+
+          // Custom: Sync user to Mixpanel (revert to `free` status)
+          syncMixpanelPeopleProperties(uid, role, subscriptionData);
         }
       }
     } catch (error) {

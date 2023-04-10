@@ -20,6 +20,7 @@ import * as functions from 'firebase-functions';
 
 import Stripe from 'stripe';
 import config from './config';
+import { hasValidSubscription } from './custom/hasValidSubscription';
 import { syncMixpanelPeopleProperties } from './custom/syncMixpanelPeopleProperties';
 import {
   CustomerData,
@@ -570,10 +571,13 @@ const manageSubscriptionStatusChange = async (
           .auth()
           .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
       } else {
-        logs.userCustomClaimSet(uid, 'stripeRole', 'null');
-        await admin
-          .auth()
-          .setCustomUserClaims(uid, { ...customClaims, stripeRole: null });
+        // Custom: Check for other valid subscriptions before removing claims
+        if (!hasValidSubscription(stripe, customerId)) {
+          logs.userCustomClaimSet(uid, 'stripeRole', 'null');
+          await admin
+            .auth()
+            .setCustomUserClaims(uid, { ...customClaims, stripeRole: null });
+        }
       }
     } catch (error) {
       // User has been deleted, simply return.

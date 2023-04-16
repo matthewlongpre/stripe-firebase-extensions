@@ -1,7 +1,10 @@
+import {
+  parseStripeRole,
+  SubscriptionData,
+} from '@matthewlongpre/music-bingo-common';
 import { logger } from 'firebase-functions';
 import startCase from 'lodash.startcase';
 import mixpanel from 'mixpanel';
-import { parseStripeRole, SubscriptionData } from 'music-bingo-common';
 import config from '../config';
 
 export async function syncMixpanelPeopleProperties(

@@ -1,20 +1,21 @@
 import { logger } from 'firebase-functions';
 import startCase from 'lodash.startcase';
 import mixpanel from 'mixpanel';
+import { parseStripeRole, SubscriptionData } from 'music-bingo-common';
 import config from '../config';
-import { parseStripeRole } from './parseStripeRole';
-import { SubscriptionData } from './parseSubscriptionData';
 
 export async function syncMixpanelPeopleProperties(
   userId: string,
   role: string | null,
   subscriptionData: SubscriptionData
 ) {
+  const getProSubscriptionData = () => Promise.resolve(subscriptionData);
+
   try {
     const { planType, maxPlayers } = await parseStripeRole(
       userId,
       role,
-      subscriptionData
+      getProSubscriptionData
     );
 
     const MixpanelService = mixpanel.init(config.mixpanelProjectId);

@@ -61,7 +61,7 @@ async function update(
 
   await admin
     .auth()
-    .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
+    .setCustomUserClaims(uid, { ...customClaims, [CLAIM_KEY]: role });
 
   syncMixpanelPeopleProperties(uid, role, subscriptionData);
 }

@@ -20,8 +20,8 @@ import * as functions from 'firebase-functions';
 
 import Stripe from 'stripe';
 import config from './config';
+import { getSubscriptionData } from './custom/getSubscriptionData';
 import { updateCustomClaims } from './custom/updateCustomClaims';
-import { getSubscriptionData } from './getSubscriptionData';
 import { CustomerData, Price, Product, TaxRate } from './interfaces';
 import * as logs from './logs';
 

@@ -1,7 +1,7 @@
-import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
-import config from './config';
-import { Subscription } from './interfaces';
+import Stripe from 'stripe';
+import config from '../config';
+import { Subscription } from '../interfaces';
 
 interface SubscriptionResult {
   /** Response from Stripe */

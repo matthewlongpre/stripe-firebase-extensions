@@ -20,15 +20,9 @@ import * as functions from 'firebase-functions';
 
 import Stripe from 'stripe';
 import config from './config';
-import { hasValidSubscription } from './custom/hasValidSubscription';
-import { syncMixpanelPeopleProperties } from './custom/syncMixpanelPeopleProperties';
-import {
-  CustomerData,
-  Price,
-  Product,
-  Subscription,
-  TaxRate,
-} from './interfaces';
+import { updateCustomClaims } from './custom/updateCustomClaims';
+import { getSubscriptionData } from './getSubscriptionData';
+import { CustomerData, Price, Product, TaxRate } from './interfaces';
 import * as logs from './logs';
 
 const apiVersion = '2020-08-27';
@@ -485,114 +479,21 @@ const manageSubscriptionStatusChange = async (
     throw new Error('User not found!');
   }
   const uid = customersSnap.docs[0].id;
-  // Retrieve latest subscription status and write it to the Firestore
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-    expand: ['default_payment_method', 'items.data.price.product'],
-  });
-  const price: Stripe.Price = subscription.items.data[0].price;
-  const prices = [];
-  for (const item of subscription.items.data) {
-    prices.push(
-      admin
-        .firestore()
-        .collection(config.productsCollectionPath)
-        .doc((item.price.product as Stripe.Product).id)
-        .collection('prices')
-        .doc(item.price.id)
-    );
-  }
-  const product: Stripe.Product = price.product as Stripe.Product;
-  const role = product.metadata.firebaseRole ?? null;
-  // Get reference to subscription doc in Cloud Firestore.
+
+  const { subscription, subscriptionData } = await getSubscriptionData(
+    stripe,
+    subscriptionId
+  );
+
   const subsDbRef = customersSnap.docs[0].ref
     .collection('subscriptions')
-    .doc(subscription.id);
-  // Update with new Subscription status
-  const subscriptionData: Subscription = {
-    metadata: subscription.metadata,
-    role,
-    status: subscription.status,
-    stripeLink: `https://dashboard.stripe.com${
-      subscription.livemode ? '' : '/test'
-    }/subscriptions/${subscription.id}`,
-    product: admin
-      .firestore()
-      .collection(config.productsCollectionPath)
-      .doc(product.id),
-    price: admin
-      .firestore()
-      .collection(config.productsCollectionPath)
-      .doc(product.id)
-      .collection('prices')
-      .doc(price.id),
-    prices,
-    quantity: subscription.items.data[0].quantity ?? null,
-    items: subscription.items.data,
-    cancel_at_period_end: subscription.cancel_at_period_end,
-    cancel_at: subscription.cancel_at
-      ? admin.firestore.Timestamp.fromMillis(subscription.cancel_at * 1000)
-      : null,
-    canceled_at: subscription.canceled_at
-      ? admin.firestore.Timestamp.fromMillis(subscription.canceled_at * 1000)
-      : null,
-    current_period_start: admin.firestore.Timestamp.fromMillis(
-      subscription.current_period_start * 1000
-    ),
-    current_period_end: admin.firestore.Timestamp.fromMillis(
-      subscription.current_period_end * 1000
-    ),
-    created: admin.firestore.Timestamp.fromMillis(subscription.created * 1000),
-    ended_at: subscription.ended_at
-      ? admin.firestore.Timestamp.fromMillis(subscription.ended_at * 1000)
-      : null,
-    trial_start: subscription.trial_start
-      ? admin.firestore.Timestamp.fromMillis(subscription.trial_start * 1000)
-      : null,
-    trial_end: subscription.trial_end
-      ? admin.firestore.Timestamp.fromMillis(subscription.trial_end * 1000)
-      : null,
-  };
+    .doc(subscriptionId);
+
   await subsDbRef.set(subscriptionData);
 
-  logs.firestoreDocCreated('subscriptions', subscription.id);
+  logs.firestoreDocCreated('subscriptions', subscriptionId);
 
-  // Update their custom claims
-  if (role) {
-    try {
-      // Get existing claims for the user
-      const { customClaims } = await admin.auth().getUser(uid);
-      // Set new role in custom claims as long as the subs status allows
-      if (['trialing', 'active'].includes(subscription.status)) {
-        logs.userCustomClaimSet(uid, 'stripeRole', role);
-        await admin
-          .auth()
-          .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
-
-        // Custom: Sync user to Mixpanel
-        syncMixpanelPeopleProperties(uid, role, subscriptionData);
-      } else {
-        // Custom: Check for other valid subscriptions before removing claims
-        const shouldRemoveClaims = !(await hasValidSubscription(
-          stripe,
-          customerId,
-          subscription.id
-        ));
-
-        if (shouldRemoveClaims) {
-          logs.userCustomClaimSet(uid, 'stripeRole', 'null');
-          await admin
-            .auth()
-            .setCustomUserClaims(uid, { ...customClaims, stripeRole: null });
-
-          // Custom: Sync user to Mixpanel (revert to `free` status)
-          syncMixpanelPeopleProperties(uid, role, subscriptionData);
-        }
-      }
-    } catch (error) {
-      // User has been deleted, simply return.
-      return;
-    }
-  }
+  await updateCustomClaims(uid, customerId, subscriptionData, stripe);
 
   // NOTE: This is a costly operation and should happen at the very end.
   // Copy the billing deatils to the customer object.

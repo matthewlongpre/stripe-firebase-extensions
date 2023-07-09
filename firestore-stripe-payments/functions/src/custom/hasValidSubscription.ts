@@ -1,6 +1,8 @@
 import { logger } from 'firebase-functions';
 import Stripe from 'stripe';
 
+const VALID_STATUSES = ['active', 'trialing'];
+
 export async function hasValidSubscription(
   stripe: Stripe,
   customerId: string,
@@ -17,9 +19,9 @@ export async function hasValidSubscription(
 
     if (!otherSubscriptions.length) return false;
 
-    // Check if the customer has any other `active` or `trialing` subscriptions
+    // Check if the customer has any other valid subscriptions
     const hasActiveSubscription = otherSubscriptions.some(({ status }) =>
-      ['active', 'trialing'].includes(status)
+      VALID_STATUSES.includes(status)
     );
 
     if (hasActiveSubscription) {

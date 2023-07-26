@@ -24,7 +24,7 @@ export async function findValidSubscription(
     );
 
     if (validSubscription) {
-      logger.log(`User has another valid subscription`);
+      logger.log(`User has another valid subscription`, validSubscription);
     }
 
     return validSubscription;

@@ -262,7 +262,6 @@ params:
     label: Mixpanel Project Token
     description: Your Mixpanel project token.
     type: string
-    required: true
 
 events:
   - type: com.stripe.v1.product.created

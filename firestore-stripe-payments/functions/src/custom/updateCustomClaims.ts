@@ -1,9 +1,9 @@
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
-import { getSubscriptionData } from '../getSubscriptionData';
 import { Subscription } from '../interfaces';
 import * as logs from './../logs';
 import { VALID_STATUSES, findValidSubscription } from './findValidSubscription';
+import { getSubscriptionData } from './getSubscriptionData';
 import { syncMixpanelPeopleProperties } from './syncMixpanelPeopleProperties';
 
 const CLAIM_KEY = 'stripeRole';
@@ -61,7 +61,7 @@ async function update(
 
   await admin
     .auth()
-    .setCustomUserClaims(uid, { ...customClaims, stripeRole: role });
+    .setCustomUserClaims(uid, { ...customClaims, [CLAIM_KEY]: role });
 
   syncMixpanelPeopleProperties(uid, role, subscriptionData);
 }
